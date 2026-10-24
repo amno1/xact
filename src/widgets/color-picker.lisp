@@ -8,7 +8,7 @@
 ;; a saturation/value square and a hue strip, a swatch with the colour's
 ;; hex value, a Pick button that samples the screen (PICK-COLOR-FROM-SCREEN),
 ;; and three sliders, R G B or H S V by its MODE.  Text is antialiased
-;; TrueType, through xcb-truetype, which is why this file is the
+;; TrueType, through runes/xcb (xcb-truetype), which is why this file is the
 ;; separate system xact/color-picker.
 ;;
 ;; The picker builds its child windows on its WIDGET-WINDOW, the parent

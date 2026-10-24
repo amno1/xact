@@ -38,7 +38,7 @@
   :description "A colour picker widget for xact, with TrueType text"
   :author "Arthur Miller <arthur.miller@live.com>"
   :license "GPLv3+"
-  :depends-on ("xact" "clxcb-truetype" "trivial-garbage")
+  :depends-on ("xact" "runes/xcb" "trivial-garbage")
   :components ((:module "src"
                 :components ((:module "widgets"
                               :components ((:file "color-picker")))))))
