@@ -8,7 +8,7 @@
 ;; a saturation/value square and a hue strip, a swatch with the colour's
 ;; hex value, a Pick button that samples the screen (PICK-COLOR-FROM-SCREEN),
 ;; and three sliders, R G B or H S V by its MODE.  Text is antialiased
-;; TrueType, through runes/xcb (xcb-truetype), which is why this file is the
+;; TrueType, through Runes (runes/xcb), which is why this file is the
 ;; separate system xact/color-picker.
 ;;
 ;; The picker builds its child windows on its WIDGET-WINDOW, the parent
@@ -174,22 +174,22 @@
 
 (defun %picker-resolve-font (&key family subfamily (size 16))
   "Find and return an XCB-TRUETYPE:FONT instance."
-  (unless (plusp (hash-table-count xcb-truetype:*font-cache*))
-    (xcb-truetype:cache-fonts))
+  (unless (plusp (hash-table-count runes/xcb:*font-cache*))
+    (runes/xcb:cache-fonts))
   (let* ((fam (or family
                   (loop for (f s) in *picker-font-candidates*
-                        when (and (gethash f xcb-truetype:*font-cache*)
-                                  (or (null s) (gethash s (gethash f xcb-truetype:*font-cache*))))
+                        when (and (gethash f runes/xcb:*font-cache*)
+                                  (or (null s) (gethash s (gethash f runes/xcb:*font-cache*))))
                           return f)
-                  (first (xcb-truetype:get-font-families))))
+                  (first (runes/xcb:get-font-families))))
          (sub (or subfamily
-                  (when (and (null family) (gethash fam xcb-truetype:*font-cache*))
+                  (when (and (null family) (gethash fam runes/xcb:*font-cache*))
                     (loop for (f s) in *picker-font-candidates*
                           when (and (string-equal f fam)
                                     s
-                                    (gethash s (gethash fam xcb-truetype:*font-cache*)))
+                                    (gethash s (gethash fam runes/xcb:*font-cache*)))
                             return s)))))
-    (make-instance 'xcb-truetype:font
+    (make-instance 'runes/xcb:font
                    :family fam
                    :subfamily sub
                    :size size)))
@@ -199,9 +199,9 @@
   window              ; gradient drawable
   indicator           ; child indicator overlay
   label-window        ; label window ("R", "G", "B" etc.)
-  label-drawable      ; xcb-truetype:window (not owned)
+  label-drawable      ; runes/xcb:window (not owned)
   value-window        ; value window ("255", "180°" etc.)
-  value-drawable      ; xcb-truetype:window (not owned)
+  value-drawable      ; runes/xcb:window (not owned)
   kind)               ; :r :g :b :h :s :v
 
 
@@ -405,7 +405,7 @@
                          :bg (picker-pixel-card w) :border 1 :border-pixel (picker-pixel-border w)
                          :event-mask xcb-const:+event-mask-exposure+))
       (setf (picker-hex-drawable w)
-            (make-instance 'xcb-truetype:window
+            (make-instance 'runes/xcb:window
                            :connection conn
                            :id (picker-hex-window w)
                            :visual (xcb:root-visual screen)
@@ -420,7 +420,7 @@
                                              xcb-const:+event-mask-button-press+
                                              xcb-const:+event-mask-button-release+)))
       (setf (picker-pick-drawable w)
-            (make-instance 'xcb-truetype:window
+            (make-instance 'runes/xcb:window
                            :connection conn
                            :id (picker-pick-button w)
                            :visual (xcb:root-visual screen)
@@ -442,7 +442,7 @@
                (l-win (%picker-make-child conn parent lx sy label-w bar-h
                                    :bg (picker-pixel-bg w)
                                    :event-mask xcb-const:+event-mask-exposure+))
-               (l-draw (make-instance 'xcb-truetype:window
+               (l-draw (make-instance 'runes/xcb:window
                                       :connection conn
                                       :id l-win
                                       :visual (xcb:root-visual screen)
@@ -461,7 +461,7 @@
                (v-win (%picker-make-child conn parent vx sy value-w bar-h
                                    :bg (picker-pixel-bg w)
                                    :event-mask xcb-const:+event-mask-exposure+))
-               (v-draw (make-instance 'xcb-truetype:window
+               (v-draw (make-instance 'runes/xcb:window
                                       :connection conn
                                       :id v-win
                                       :visual (xcb:root-visual screen)
@@ -639,14 +639,14 @@
                    (:v #x9775FA)
                    (t #xFFFFFF))))
     (xcb::clear-area conn 0 win 0 0 0 0)
-    (let* ((ascent (xcb-truetype:font-ascent screen font))
-           (descent (abs (xcb-truetype:font-descent screen font)))
+    (let* ((ascent (runes/xcb:font-ascent screen font))
+           (descent (abs (runes/xcb:font-descent screen font)))
            (th (+ ascent descent))
-           (tw (xcb-truetype:text-width screen font label))
+           (tw (runes/xcb:text-width screen font label))
            (bh (picker-bar-h w))
            (x (max 2 (floor (- 24 tw) 2)))
            (y (+ (floor (- bh th) 2) ascent)))
-      (xcb-truetype:draw-text draw font label x y :colour color))))
+      (runes/xcb:draw-text draw font label x y :colour color))))
 
 (defun %picker-redraw-bar-value (w bar)
   (let* ((conn   (widget-connection w))
@@ -666,15 +666,15 @@
                       (:v (format nil "~3D%" (round (* (picker-val w) 100) 255)))
                       (t "")))))
     (xcb::clear-area conn 0 win 0 0 0 0)
-    (let* ((ascent (xcb-truetype:font-ascent screen font))
-           (descent (abs (xcb-truetype:font-descent screen font)))
+    (let* ((ascent (runes/xcb:font-ascent screen font))
+           (descent (abs (runes/xcb:font-descent screen font)))
            (th (+ ascent descent))
-           (tw (xcb-truetype:text-width screen font val-str))
+           (tw (runes/xcb:text-width screen font val-str))
            (bh (picker-bar-h w))
            (vw 46)
            (x (max 2 (- vw tw 2)))
            (y (+ (floor (- bh th) 2) ascent)))
-      (xcb-truetype:draw-text draw font val-str x y :colour #xCCCCCC))))
+      (runes/xcb:draw-text draw font val-str x y :colour #xCCCCCC))))
 
 (defun %picker-redraw-bar (w bar)
   (let* ((conn (widget-connection w))
@@ -715,20 +715,20 @@
            (font  (picker-tt-font w))
            (sfont (picker-tt-small-font w)))
       (xcb::clear-area conn 0 win 0 0 0 0)
-      (let* ((ascent  (xcb-truetype:font-ascent screen font))
-             (descent (abs (xcb-truetype:font-descent screen font)))
+      (let* ((ascent  (runes/xcb:font-ascent screen font))
+             (descent (abs (runes/xcb:font-descent screen font)))
              (th      (+ ascent descent))
              (y       (+ (floor (- 36 th) 2) ascent))
-             (sascent (xcb-truetype:font-ascent screen sfont))
-             (sdescent (abs (xcb-truetype:font-descent screen sfont)))
+             (sascent (runes/xcb:font-ascent screen sfont))
+             (sdescent (abs (runes/xcb:font-descent screen sfont)))
              (sth     (+ sascent sdescent))
              (sy      (+ (floor (- 36 sth) 2) sascent))
-             (tag-w   (xcb-truetype:text-width screen sfont mode-tag))
+             (tag-w   (runes/xcb:text-width screen sfont mode-tag))
              (ew      (picker-echo-w w))
-             (tag-x   (max (+ 12 (xcb-truetype:text-width screen font hex) 10)
+             (tag-x   (max (+ 12 (runes/xcb:text-width screen font hex) 10)
                            (- ew tag-w 12))))
-        (xcb-truetype:draw-text draw font hex 12 y :colour (picker-pixel-fg w))
-        (xcb-truetype:draw-text draw sfont mode-tag tag-x sy :colour #x888899)))))
+        (runes/xcb:draw-text draw font hex 12 y :colour (picker-pixel-fg w))
+        (runes/xcb:draw-text draw sfont mode-tag tag-x sy :colour #x888899)))))
 
 (defun %picker-redraw-pick-button (w)
   (let* ((conn  (widget-connection w))
@@ -738,14 +738,14 @@
          (font  (picker-tt-font w))
          (text  "Pick"))
     (xcb::clear-area conn 0 win 0 0 0 0)
-    (let* ((ascent  (xcb-truetype:font-ascent screen font))
-           (descent (abs (xcb-truetype:font-descent screen font)))
+    (let* ((ascent  (runes/xcb:font-ascent screen font))
+           (descent (abs (runes/xcb:font-descent screen font)))
            (th      (+ ascent descent))
-           (tw      (xcb-truetype:text-width screen font text))
+           (tw      (runes/xcb:text-width screen font text))
            (pw      (picker-pick-w w))
            (x       (max 4 (floor (- pw tw) 2)))
            (y       (+ (floor (- 36 th) 2) ascent)))
-      (xcb-truetype:draw-text draw font text x y :colour (picker-pixel-fg w)))))
+      (runes/xcb:draw-text draw font text x y :colour (picker-pixel-fg w)))))
 
 (defun %picker-redraw-indicators (w)
   (let ((conn (widget-connection w))
@@ -999,7 +999,7 @@
                                          (picker-bar-value-drawable bar)))))
       ;; Free only each wrapper's picture: its window is destroyed below
       ;; with the rest.
-      (when d (xcb-truetype:release-drawable d)))
+      (when d (runes/xcb:release-drawable d)))
     (dolist (wid (append (list (picker-sv-window w) (picker-sv-indicator w)
                                (picker-hue-window w) (picker-hue-indicator w)
                                (picker-swatch-window w) (picker-hex-window w)
